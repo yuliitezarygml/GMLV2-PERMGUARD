@@ -1,0 +1,452 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}PermGuard Policy Testing - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-vial"></i> PermGuard Policy Testing</h1>
+                <a href="/admin/permguard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Test Form -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-play"></i> Test Authorization</h5>
+                </div>
+                <div class="card-body">
+                    <form id="testForm">
+                        <div class="mb-3">
+                            <label for="testUser" class="form-label">User <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="testUser" placeholder="e.g., alice@gamestore.com" required>
+                            <small class="form-text text-muted">The user principal to test authorization for</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="testAction" class="form-label">Action <span class="text-danger">*</span></label>
+                            <select class="form-control" id="testAction" required>
+                                <option value="">Select an action...</option>
+                                <option value="game::purchase">Purchase Game</option>
+                                <option value="game::view">View Game</option>
+                                <option value="game::download">Download Game</option>
+                                <option value="game::rate">Rate Game</option>
+                                <option value="game::wishlist">Add to Wishlist</option>
+                                <option value="profile::view">View Profile</option>
+                                <option value="profile::edit">Edit Profile</option>
+                                <option value="admin::access">Admin Access</option>
+                                <option value="custom">Custom Action</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="customAction" placeholder="Enter custom action" style="display: none;">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="testResource" class="form-label">Resource <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="testResource" placeholder="e.g., game::game-001" required>
+                            <small class="form-text text-muted">The resource being accessed</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="testContext" class="form-label">Context (JSON)</label>
+                            <textarea class="form-control" id="testContext" rows="4" placeholder='{"age": 25, "region": "US", "account_balance": 100}'></textarea>
+                            <small class="form-text text-muted">Additional context for the authorization request (optional)</small>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-outline-secondary me-md-2" onclick="clearForm()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Test Authorization
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Predefined Test Cases -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-list"></i> Common Test Cases</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <button class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="loadTestCase('purchase_adult')">
+                                Adult Game Purchase
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="loadTestCase('purchase_minor')">
+                                Minor Game Purchase
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="loadTestCase('premium_feature')">
+                                Premium Feature
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="loadTestCase('region_restricted')">
+                                Region Restricted
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="loadTestCase('admin_access')">
+                                Admin Access
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Test Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="testResults" style="display: none;">
+                        <div class="alert" id="resultAlert">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="alert-heading mb-1" id="resultHeading">Authorization Result</h5>
+                                    <p class="mb-0" id="resultMessage">Test result will appear here</p>
+                                </div>
+                                <i id="resultIcon" class="fas fa-2x"></i>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <small class="text-muted">Response Time</small>
+                                <div class="h5" id="responseTime">-</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Decision</small>
+                                <div class="h5" id="decisionResult">-</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6>Request Details</h6>
+                            <pre class="bg-light p-2 small" id="requestDetails"></pre>
+                        </div>
+
+                        <div class="mb-3" id="policyEvaluationSection" style="display: none;">
+                            <h6>Policy Evaluation</h6>
+                            <div id="policyEvaluationResults"></div>
+                        </div>
+
+                        <div class="mb-3" id="errorSection" style="display: none;">
+                            <h6>Error Details</h6>
+                            <pre class="bg-danger text-white p-2 small" id="errorDetails"></pre>
+                        </div>
+                    </div>
+
+                    <div id="noResults" class="text-center py-4">
+                        <i class="fas fa-flask fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Run a test to see results here</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test History -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-history"></i> Test History</h5>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="testHistory"></div>
+                    <div id="noHistory" class="text-center py-3">
+                        <p class="text-muted mb-0">No test history yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let testHistory = [];
+
+// Test cases
+const testCases = {
+    purchase_adult: {
+        user: 'alice@gamestore.com',
+        action: 'game::purchase',
+        resource: 'game::game-001',
+        context: '{"age": 25, "region": "US", "account_balance": 100, "game_rating": "M"}'
+    },
+    purchase_minor: {
+        user: 'bob@gamestore.com',
+        action: 'game::purchase',
+        resource: 'game::game-001',
+        context: '{"age": 16, "region": "US", "account_balance": 50, "game_rating": "M"}'
+    },
+    premium_feature: {
+        user: 'charlie@gamestore.com',
+        action: 'game::download',
+        resource: 'game::premium-001',
+        context: '{"age": 30, "premium_member": false, "region": "US"}'
+    },
+    region_restricted: {
+        user: 'david@gamestore.com',
+        action: 'game::purchase',
+        resource: 'game::game-002',
+        context: '{"age": 25, "region": "CN", "account_balance": 100}'
+    },
+    admin_access: {
+        user: 'admin@gamestore.com',
+        action: 'admin::access',
+        resource: 'admin::dashboard',
+        context: '{"role": "admin", "department": "IT"}'
+    }
+};
+
+function loadTestCase(caseId) {
+    const testCase = testCases[caseId];
+    if (testCase) {
+        document.getElementById('testUser').value = testCase.user;
+        document.getElementById('testAction').value = testCase.action;
+        document.getElementById('testResource').value = testCase.resource;
+        document.getElementById('testContext').value = testCase.context;
+    }
+}
+
+function clearForm() {
+    document.getElementById('testForm').reset();
+    document.getElementById('customAction').style.display = 'none';
+}
+
+function clearHistory() {
+    testHistory = [];
+    updateHistoryDisplay();
+}
+
+document.getElementById('testAction').addEventListener('change', function() {
+    const customInput = document.getElementById('customAction');
+    if (this.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.required = true;
+    } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+    }
+});
+
+document.getElementById('testForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    runTest();
+});
+
+function runTest() {
+    const user = document.getElementById('testUser').value;
+    const actionSelect = document.getElementById('testAction');
+    const action = actionSelect.value === 'custom' ?
+        document.getElementById('customAction').value : actionSelect.value;
+    const resource = document.getElementById('testResource').value;
+    const contextStr = document.getElementById('testContext').value;
+
+    let context = {};
+    if (contextStr.trim()) {
+        try {
+            context = JSON.parse(contextStr);
+        } catch (e) {
+            alert('Invalid JSON in context field');
+            return;
+        }
+    }
+
+    const testData = {
+        user: user,
+        action: action,
+        resource: resource,
+        context: context
+    };
+
+    const startTime = Date.now();
+
+    fetch('/api/admin/permguard/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const endTime = Date.now();
+        const responseTime = endTime - startTime;
+
+        displayTestResult(data, testData, responseTime);
+        addToHistory(testData, data, responseTime);
+    })
+    .catch(error => {
+        const endTime = Date.now();
+        const responseTime = endTime - startTime;
+
+        displayTestError(error, testData, responseTime);
+        addToHistory(testData, { error: error.message }, responseTime);
+    });
+}
+
+function displayTestResult(result, request, responseTime) {
+    const resultsDiv = document.getElementById('testResults');
+    const noResultsDiv = document.getElementById('noResults');
+
+    resultsDiv.style.display = 'block';
+    noResultsDiv.style.display = 'none';
+
+    const alert = document.getElementById('resultAlert');
+    const heading = document.getElementById('resultHeading');
+    const message = document.getElementById('resultMessage');
+    const icon = document.getElementById('resultIcon');
+    const responseTimeEl = document.getElementById('responseTime');
+    const decisionEl = document.getElementById('decisionResult');
+
+    if (result.success) {
+        const decision = result.allowed ? 'ALLOW' : 'DENY';
+        alert.className = `alert ${result.allowed ? 'alert-success' : 'alert-danger'}`;
+        heading.textContent = `Authorization ${decision}`;
+        message.textContent = result.message || 'Policy evaluation completed';
+        icon.className = `fas fa-2x ${result.allowed ? 'fa-check-circle' : 'fa-times-circle'}`;
+        decisionEl.innerHTML = `<span class="badge ${result.allowed ? 'bg-success' : 'bg-danger'}">${decision}</span>`;
+    } else {
+        alert.className = 'alert alert-warning';
+        heading.textContent = 'Test Failed';
+        message.textContent = result.error || 'Unknown error occurred';
+        icon.className = 'fas fa-2x fa-exclamation-triangle';
+        decisionEl.innerHTML = '<span class="badge bg-warning">ERROR</span>';
+    }
+
+    responseTimeEl.textContent = responseTime + 'ms';
+
+    // Display request details
+    document.getElementById('requestDetails').textContent = JSON.stringify(request, null, 2);
+
+    // Display policy evaluation if available
+    const policySection = document.getElementById('policyEvaluationSection');
+    if (result.policies && result.policies.length > 0) {
+        policySection.style.display = 'block';
+        const policyResults = document.getElementById('policyEvaluationResults');
+        policyResults.innerHTML = result.policies.map(policy => `
+            <div class="border p-2 mb-2 rounded">
+                <div class="d-flex justify-content-between">
+                    <strong>${policy.name}</strong>
+                    <span class="badge ${policy.result === 'ALLOW' ? 'bg-success' : 'bg-danger'}">${policy.result}</span>
+                </div>
+                ${policy.reason ? `<small class="text-muted">${policy.reason}</small>` : ''}
+            </div>
+        `).join('');
+    } else {
+        policySection.style.display = 'none';
+    }
+
+    // Display error details if any
+    const errorSection = document.getElementById('errorSection');
+    if (!result.success && result.error) {
+        errorSection.style.display = 'block';
+        document.getElementById('errorDetails').textContent = result.error;
+    } else {
+        errorSection.style.display = 'none';
+    }
+}
+
+function displayTestError(error, request, responseTime) {
+    displayTestResult({
+        success: false,
+        error: error.message || error.toString()
+    }, request, responseTime);
+}
+
+function addToHistory(request, result, responseTime) {
+    const historyItem = {
+        timestamp: new Date().toLocaleString(),
+        request: request,
+        result: result,
+        responseTime: responseTime
+    };
+
+    testHistory.unshift(historyItem);
+    if (testHistory.length > 10) {
+        testHistory.pop();
+    }
+
+    updateHistoryDisplay();
+}
+
+function updateHistoryDisplay() {
+    const historyDiv = document.getElementById('testHistory');
+    const noHistoryDiv = document.getElementById('noHistory');
+
+    if (testHistory.length === 0) {
+        historyDiv.style.display = 'none';
+        noHistoryDiv.style.display = 'block';
+        return;
+    }
+
+    historyDiv.style.display = 'block';
+    noHistoryDiv.style.display = 'none';
+
+    historyDiv.innerHTML = testHistory.map((item, index) => {
+        const success = item.result.success !== false;
+        const decision = success ? (item.result.allowed ? 'ALLOW' : 'DENY') : 'ERROR';
+        const badgeClass = success ? (item.result.allowed ? 'bg-success' : 'bg-danger') : 'bg-warning';
+
+        return `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <strong>${item.request.user}</strong> → ${item.request.action}
+                        <br><small class="text-muted">${item.request.resource}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge ${badgeClass}">${decision}</span>
+                        <br><small class="text-muted">${item.responseTime}ms</small>
+                    </div>
+                </div>
+                <small class="text-muted">${item.timestamp}</small>
+            </div>
+        `;
+    }).join('');
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+.alert {
+    border: none;
+    border-radius: 0.375rem;
+}
+
+pre {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.btn-sm {
+    font-size: 0.875rem;
+}
+
+#testHistory {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.form-control:focus {
+    border-color: #0066ff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 255, 0.25);
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+</style>
+{% endblock %}

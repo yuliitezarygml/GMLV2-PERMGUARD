@@ -1,0 +1,592 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}PermGuard Policy Management - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-file-code"></i> PermGuard Policy Management</h1>
+                <div>
+                    <a href="/admin/permguard" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <button class="btn btn-success" onclick="createNewPolicy()">
+                        <i class="fas fa-plus"></i> New Policy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Policy List -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-list"></i> Policy Files</h5>
+                </div>
+                <div class="card-body">
+                    <div id="policyList">
+                        <!-- Policies will be loaded here -->
+                    </div>
+                    <div id="loadingPolicies" class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">Loading policies...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy Editor -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 id="editorTitle"><i class="fas fa-edit"></i> Policy Editor</h5>
+                    <div id="editorActions" style="display: none;">
+                        <button class="btn btn-sm btn-outline-secondary me-2" onclick="validatePolicy()">
+                            <i class="fas fa-check"></i> Validate
+                        </button>
+                        <button class="btn btn-sm btn-success me-2" onclick="savePolicy()">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePolicy()" id="deleteBtn">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="noPolicy" class="text-center py-5">
+                        <i class="fas fa-file-code fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Select a policy to edit or create a new one</p>
+                    </div>
+
+                    <div id="policyEditor" style="display: none;">
+                        <div class="mb-3">
+                            <label for="policyName" class="form-label">Policy Name</label>
+                            <input type="text" class="form-control" id="policyName" placeholder="Enter policy name">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="policyDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="policyDescription" rows="2" placeholder="Policy description (optional)"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="policyContent" class="form-label">Cedar Policy Content</label>
+                            <div class="position-relative">
+                                <textarea class="form-control font-monospace" id="policyContent" rows="20" placeholder="Enter Cedar policy content here..."></textarea>
+                                <div class="position-absolute top-0 end-0 p-2">
+                                    <small class="text-muted">Cedar Language</small>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                Use Cedar policy language syntax.
+                                <a href="#" onclick="showCedarHelp()">View syntax help</a>
+                            </small>
+                        </div>
+
+                        <div id="validationResult" style="display: none;" class="mb-3">
+                            <div class="alert" id="validationAlert">
+                                <div id="validationMessage"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Policy Templates -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-templates"></i> Policy Templates</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-gamepad fa-2x text-primary mb-2"></i>
+                                    <h6>Game Purchase</h6>
+                                    <p class="small text-muted">Template for game purchase authorization</p>
+                                    <button class="btn btn-sm btn-primary" onclick="loadTemplate('game_purchase')">
+                                        Use Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-birthday-cake fa-2x text-info mb-2"></i>
+                                    <h6>Age Restriction</h6>
+                                    <p class="small text-muted">Template for age-based content restrictions</p>
+                                    <button class="btn btn-sm btn-info" onclick="loadTemplate('age_restriction')">
+                                        Use Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-shield fa-2x text-warning mb-2"></i>
+                                    <h6>Admin Access</h6>
+                                    <p class="small text-muted">Template for administrative permissions</p>
+                                    <button class="btn btn-sm btn-warning" onclick="loadTemplate('admin_access')">
+                                        Use Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-circle fa-2x text-success mb-2"></i>
+                                    <h6>Profile Access</h6>
+                                    <p class="small text-muted">Template for user profile permissions</p>
+                                    <button class="btn btn-sm btn-success" onclick="loadTemplate('profile_access')">
+                                        Use Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cedar Help Modal -->
+<div class="modal fade" id="cedarHelpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cedar Policy Language Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Basic Cedar Policy Structure</h6>
+                <pre class="bg-light p-3"><code>permit (
+    principal == User::"alice@example.com",
+    action == Action::"game::purchase",
+    resource == Game::"game-001"
+) when {
+    principal.age >= 18
+};</code></pre>
+
+                <h6 class="mt-4">Common Operators</h6>
+                <ul>
+                    <li><code>==</code> - Equality</li>
+                    <li><code>!=</code> - Inequality</li>
+                    <li><code>&gt;=</code>, <code>&lt;=</code> - Comparison</li>
+                    <li><code>&amp;&amp;</code> - Logical AND</li>
+                    <li><code>||</code> - Logical OR</li>
+                    <li><code>!</code> - Logical NOT</li>
+                    <li><code>in</code> - Set membership</li>
+                    <li><code>has</code> - Attribute existence</li>
+                </ul>
+
+                <h6 class="mt-4">Example Policies</h6>
+                <div class="accordion" id="exampleAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example1">
+                                Age Restriction Policy
+                            </button>
+                        </h2>
+                        <div id="example1" class="accordion-collapse collapse" data-bs-parent="#exampleAccordion">
+                            <div class="accordion-body">
+                                <pre class="bg-light p-2 small"><code>permit (
+    principal,
+    action == Action::"game::purchase",
+    resource
+) when {
+    resource.rating == "E" ||
+    (resource.rating == "T" && principal.age >= 13) ||
+    (resource.rating == "M" && principal.age >= 17)
+};</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPolicy = null;
+let policies = [];
+
+// Policy templates
+const policyTemplates = {
+    game_purchase: {
+        name: 'Game Purchase Policy',
+        description: 'Allows users to purchase games with age and balance restrictions',
+        content: `permit (
+    principal,
+    action == Action::"game::purchase",
+    resource
+) when {
+    principal.has("account_balance") &&
+    principal.account_balance >= resource.price &&
+    (
+        resource.rating == "E" ||
+        (resource.rating == "T" && principal.age >= 13) ||
+        (resource.rating == "M" && principal.age >= 17) ||
+        (resource.rating == "AO" && principal.age >= 18)
+    )
+};`
+    },
+    age_restriction: {
+        name: 'Age Restriction Policy',
+        description: 'Restricts access to age-inappropriate content',
+        content: `forbid (
+    principal,
+    action,
+    resource
+) when {
+    resource.has("age_rating") &&
+    principal.has("age") &&
+    (
+        (resource.age_rating == "T" && principal.age < 13) ||
+        (resource.age_rating == "M" && principal.age < 17) ||
+        (resource.age_rating == "AO" && principal.age < 18)
+    )
+};`
+    },
+    admin_access: {
+        name: 'Admin Access Policy',
+        description: 'Grants administrative permissions',
+        content: `permit (
+    principal,
+    action,
+    resource
+) when {
+    principal.has("role") &&
+    principal.role == "admin"
+};`
+    },
+    profile_access: {
+        name: 'Profile Access Policy',
+        description: 'Allows users to access their own profiles',
+        content: `permit (
+    principal,
+    action == Action::"profile::view",
+    resource
+) when {
+    principal == resource.owner
+};
+
+permit (
+    principal,
+    action == Action::"profile::edit",
+    resource
+) when {
+    principal == resource.owner ||
+    (principal.has("role") && principal.role == "admin")
+};`
+    }
+};
+
+function loadPolicies() {
+    fetch('/api/admin/permguard/policies')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                policies = data.policies;
+                displayPolicies();
+            } else {
+                alert('Error loading policies: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        })
+        .finally(() => {
+            document.getElementById('loadingPolicies').style.display = 'none';
+        });
+}
+
+function displayPolicies() {
+    const policyList = document.getElementById('policyList');
+    policyList.innerHTML = '';
+
+    if (policies.length === 0) {
+        policyList.innerHTML = '<p class="text-muted">No policies found</p>';
+        return;
+    }
+
+    policies.forEach(policy => {
+        const item = document.createElement('div');
+        item.className = 'policy-item p-2 border rounded mb-2 cursor-pointer';
+        item.onclick = () => loadPolicy(policy.name);
+
+        item.innerHTML = `
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong>${policy.name}</strong>
+                    <br><small class="text-muted">${policy.description || 'No description'}</small>
+                </div>
+                <small class="text-muted">${policy.size} bytes</small>
+            </div>
+        `;
+
+        policyList.appendChild(item);
+    });
+}
+
+function loadPolicy(policyName) {
+    fetch(`/api/admin/permguard/policies/${policyName}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentPolicy = policyName;
+                displayPolicyEditor(data.policy);
+                highlightSelectedPolicy(policyName);
+            } else {
+                alert('Error loading policy: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+}
+
+function displayPolicyEditor(policy) {
+    document.getElementById('noPolicy').style.display = 'none';
+    document.getElementById('policyEditor').style.display = 'block';
+    document.getElementById('editorActions').style.display = 'block';
+
+    document.getElementById('editorTitle').innerHTML = `<i class="fas fa-edit"></i> Editing: ${policy.name}`;
+    document.getElementById('policyName').value = policy.name;
+    document.getElementById('policyDescription').value = policy.description || '';
+    document.getElementById('policyContent').value = policy.content;
+
+    // Show/hide delete button for new policies
+    document.getElementById('deleteBtn').style.display = policy.name.startsWith('new_') ? 'none' : 'inline-block';
+}
+
+function highlightSelectedPolicy(policyName) {
+    // Remove previous highlights
+    document.querySelectorAll('.policy-item').forEach(item => {
+        item.classList.remove('border-primary', 'bg-light');
+    });
+
+    // Highlight selected policy
+    const policyItems = document.querySelectorAll('.policy-item');
+    policyItems.forEach(item => {
+        if (item.querySelector('strong').textContent === policyName) {
+            item.classList.add('border-primary', 'bg-light');
+        }
+    });
+}
+
+function createNewPolicy() {
+    currentPolicy = null;
+
+    const newPolicy = {
+        name: '',
+        description: '',
+        content: '// New Cedar policy\npermit (\n    principal,\n    action,\n    resource\n) when {\n    // Add your conditions here\n};'
+    };
+
+    displayPolicyEditor(newPolicy);
+    document.getElementById('editorTitle').innerHTML = '<i class="fas fa-plus"></i> New Policy';
+    document.getElementById('policyName').focus();
+}
+
+function validatePolicy() {
+    const content = document.getElementById('policyContent').value;
+
+    if (!content.trim()) {
+        showValidationResult(false, 'Policy content cannot be empty');
+        return;
+    }
+
+    fetch('/api/admin/permguard/policies/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showValidationResult(data.valid, data.message, data.errors);
+    })
+    .catch(error => {
+        showValidationResult(false, 'Validation error: ' + error);
+    });
+}
+
+function showValidationResult(valid, message, errors = []) {
+    const resultDiv = document.getElementById('validationResult');
+    const alert = document.getElementById('validationAlert');
+    const messageDiv = document.getElementById('validationMessage');
+
+    alert.className = valid ? 'alert alert-success' : 'alert alert-danger';
+
+    let content = `<strong>${valid ? 'Valid' : 'Invalid'} Policy</strong><br>${message}`;
+
+    if (errors && errors.length > 0) {
+        content += '<ul class="mt-2 mb-0">';
+        errors.forEach(error => {
+            content += `<li>${error}</li>`;
+        });
+        content += '</ul>';
+    }
+
+    messageDiv.innerHTML = content;
+    resultDiv.style.display = 'block';
+
+    // Auto-hide success messages
+    if (valid) {
+        setTimeout(() => {
+            resultDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function savePolicy() {
+    const name = document.getElementById('policyName').value.trim();
+    const description = document.getElementById('policyDescription').value.trim();
+    const content = document.getElementById('policyContent').value.trim();
+
+    if (!name) {
+        alert('Policy name is required');
+        return;
+    }
+
+    if (!content) {
+        alert('Policy content is required');
+        return;
+    }
+
+    const policyData = {
+        name: name,
+        description: description,
+        content: content
+    };
+
+    const url = currentPolicy ?
+        `/api/admin/permguard/policies/${currentPolicy}` :
+        '/api/admin/permguard/policies';
+
+    const method = currentPolicy ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(policyData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentPolicy = name;
+            loadPolicies();
+            showValidationResult(true, 'Policy saved successfully');
+        } else {
+            alert('Error saving policy: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function deletePolicy() {
+    if (!currentPolicy) return;
+
+    if (!confirm(`Are you sure you want to delete policy "${currentPolicy}"?`)) {
+        return;
+    }
+
+    fetch(`/api/admin/permguard/policies/${currentPolicy}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentPolicy = null;
+                document.getElementById('noPolicy').style.display = 'block';
+                document.getElementById('policyEditor').style.display = 'none';
+                document.getElementById('editorActions').style.display = 'none';
+                loadPolicies();
+            } else {
+                alert('Error deleting policy: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+}
+
+function loadTemplate(templateName) {
+    const template = policyTemplates[templateName];
+    if (template) {
+        currentPolicy = null;
+        displayPolicyEditor(template);
+        document.getElementById('editorTitle').innerHTML = '<i class="fas fa-plus"></i> New Policy (from template)';
+        document.getElementById('policyName').value = template.name;
+    }
+}
+
+function showCedarHelp() {
+    new bootstrap.Modal(document.getElementById('cedarHelpModal')).show();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadPolicies();
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+.policy-item {
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.policy-item:hover {
+    background-color: rgba(0, 102, 255, 0.1) !important;
+    border-color: #0066ff !important;
+}
+
+.font-monospace {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+}
+
+#policyContent {
+    resize: vertical;
+    min-height: 400px;
+}
+
+.accordion-button {
+    font-size: 0.9em;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+pre code {
+    font-size: 0.85em;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+</style>
+{% endblock %}

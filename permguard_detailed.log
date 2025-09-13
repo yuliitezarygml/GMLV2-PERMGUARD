@@ -1,0 +1,4 @@
+2025-09-13 15:03:40 [   DEBUG] permguard_detailed: 🌐 TRAFFIC: GET / -> 200 (544.14ms) user: anonymous IP: 127.0.0.1
+2025-09-13 15:03:40 [   DEBUG] permguard_detailed: 🌐 TRAFFIC: GET /api/game_stats -> 200 (0.0ms) user: anonymous IP: 127.0.0.1
+2025-09-13 15:03:41 [   DEBUG] permguard_detailed: 🌐 TRAFFIC: GET /admin/traffic -> 302 (0.0ms) user: anonymous IP: 127.0.0.1
+2025-09-13 15:03:41 [    INFO] permguard_detailed: 🔐 ADMIN ACCESS: anonymous -> GET /admin/traffic [302] (0.0ms)

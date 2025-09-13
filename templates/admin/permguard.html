@@ -1,0 +1,299 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}PermGuard Dashboard - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-shield-alt"></i> PermGuard Authorization Dashboard
+            </h1>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white {{ 'bg-success' if permguard_status.connected else 'bg-danger' }}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ 'Connected' if permguard_status.connected else 'Disconnected' }}</h4>
+                            <p class="mb-0">PermGuard Status</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-{{ 'check-circle' if permguard_status.connected else 'times-circle' }} fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if auth_stats and not auth_stats.get('error') %}
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ auth_stats.total_requests }}</h4>
+                            <p class="mb-0">Total Requests</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ "%.1f"|format(auth_stats.success_rate) }}%</h4>
+                            <p class="mb-0">Success Rate</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-thumbs-up fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ auth_stats.denied_requests }}</h4>
+                            <p class="mb-0">Denied Requests</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-ban fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Configuration Info -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-cog"></i> Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>Endpoint:</strong></td>
+                                <td>{{ permguard_status.endpoint }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Workspace ID:</strong></td>
+                                <td>{{ permguard_status.workspace_id }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Policy Store ID:</strong></td>
+                                <td>{{ permguard_status.policy_store_id }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if permguard_status.connected else 'bg-danger' }}">
+                                        {{ 'Active' if permguard_status.connected else 'Inactive' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if auth_stats and not auth_stats.get('error') %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Top Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% for action in auth_stats.top_actions %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ action.action.split('::')[-1] }}</span>
+                        <span class="badge bg-primary">{{ action.count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Top Users and Recent Requests -->
+    <div class="row mb-4">
+        {% if auth_stats and not auth_stats.get('error') %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-users"></i> Top Users</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Requests</th>
+                                    <th>Success Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in auth_stats.top_users %}
+                                <tr>
+                                    <td>{{ user.user }}</td>
+                                    <td>{{ user.requests }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if user.success_rate > 90 else 'bg-warning' }}">
+                                            {{ "%.1f"|format(user.success_rate) }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if recent_auths %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock"></i> Recent Authorization Requests</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in recent_auths %}
+                                <tr>
+                                    <td>{{ req.timestamp[:19] }}</td>
+                                    <td>{{ req.user.split('@')[0] }}</td>
+                                    <td>{{ req.action }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if req.result == 'ALLOW' else 'bg-danger' }}">
+                                            {{ req.result }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-tools"></i> Management Tools</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="/admin/permguard/logs" class="btn btn-primary">
+                            <i class="fas fa-list"></i> View Authorization Logs
+                        </a>
+                        <a href="/admin/permguard/test" class="btn btn-info">
+                            <i class="fas fa-vial"></i> Test Policies
+                        </a>
+                        <button class="btn btn-success" onclick="refreshStats()">
+                            <i class="fas fa-sync"></i> Refresh Stats
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Error:</strong> {{ error }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function refreshStats() {
+    fetch('/api/admin/permguard/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error refreshing stats: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    refreshStats();
+}, 30000);
+</script>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1rem;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.table-sm td, .table-sm th {
+    padding: 0.3rem;
+}
+
+.btn-group .btn {
+    margin-right: 0.5rem;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+</style>
+{% endblock %}
